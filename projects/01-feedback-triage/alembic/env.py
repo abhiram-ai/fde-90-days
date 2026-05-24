@@ -14,8 +14,15 @@ config = context.config
 # Load environment variables from .env
 load_dotenv()
 db_url = os.environ.get("DATABASE_URL")
-if db_url:
-    config.set_main_option("sqlalchemy.url", db_url)
+
+if not db_url:
+    raise ValueError("DATABASE_URL environment variable is missing. Please set it in your environment or .env file.")
+
+# Handle legacy postgres:// URLs (e.g., from older PaaS setups) for SQLAlchemy 1.4+
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+
+config.set_main_option("sqlalchemy.url", db_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
