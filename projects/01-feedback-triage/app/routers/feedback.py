@@ -28,6 +28,9 @@ class FeedbackResponse(FeedbackCreate):
 
     model_config = {"from_attributes": True}
 
+class FeedbackUpdate(BaseModel):
+    reviewed: bool
+
 @router.post("/", response_model=FeedbackResponse, status_code=201)
 def create_feedback(feedback: FeedbackCreate, db: Session = Depends(get_db)):
     db_feedback = Feedback(
@@ -58,3 +61,14 @@ def list_feedback(
     if source:
         query = query.filter(Feedback.source == source)
     return query.offset(skip).limit(limit).all()
+
+@router.patch("/{feedback_id}", response_model=FeedbackResponse)
+def update_feedback(feedback_id: UUID, feedback_update: FeedbackUpdate, db: Session = Depends(get_db)):
+    db_feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
+    if not db_feedback:
+        raise HTTPException(status_code=404, detail="Feedback not found")
+    
+    db_feedback.reviewed = feedback_update.reviewed
+    db.commit()
+    db.refresh(db_feedback)
+    return db_feedback
