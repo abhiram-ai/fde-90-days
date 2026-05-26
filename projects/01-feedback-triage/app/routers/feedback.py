@@ -6,6 +6,9 @@ from typing import Optional, List
 from app.database import get_db
 from sqlalchemy.orm import Session
 from app.models import Feedback, FeedbackSource
+import structlog
+
+logger = structlog.get_logger(__name__)
 
 
 router = APIRouter(
@@ -41,12 +44,19 @@ def create_feedback(feedback: FeedbackCreate, db: Session = Depends(get_db)):
     db.add(db_feedback)
     db.commit()
     db.refresh(db_feedback)
+    
+    logger.info(
+        "feedback_created", 
+        feedback_id=str(db_feedback.id), 
+        source=db_feedback.source
+    )
     return db_feedback
 
 @router.get("/{feedback_id}", response_model=FeedbackResponse)
 def get_feedback(feedback_id: UUID, db: Session = Depends(get_db)):
     db_feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
     if not db_feedback:
+        logger.warning("feedback_not_found", feedback_id=str(feedback_id))
         raise HTTPException(status_code=404, detail="Feedback not found")
     return db_feedback
 
@@ -66,6 +76,7 @@ def list_feedback(
 def update_feedback(feedback_id: UUID, feedback_update: FeedbackUpdate, db: Session = Depends(get_db)):
     db_feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
     if not db_feedback:
+        logger.warning("feedback_not_found", feedback_id=str(feedback_id))
         raise HTTPException(status_code=404, detail="Feedback not found")
     
     db_feedback.reviewed = feedback_update.reviewed
