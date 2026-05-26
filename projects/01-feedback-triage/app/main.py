@@ -8,6 +8,7 @@ from app.routers import feedback, health
 
 
 setup_logging()
+print(">>> Logging configured", flush=True)  # temporary sanity check
 
 app = FastAPI(
     title="Feedback API",
